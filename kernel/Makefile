@@ -117,7 +117,9 @@ all: $(PROGS)
 
 quest: $(OBJS) $(ACPI_OBJS) $(LWIP_OBJS)
 	rm -f quest
-	$(LD) -Map quest.map -T ldscripts/quest.ld -o $@ $^ 
+	$(LD) -Map quest.map -T ldscripts/quest.ld -o $@ $^
+	cp $@ $@-unstripped
+	strip $@
 
 %: %.o
 	$(LD) -o $@ $< -T ldscripts/module.ld -Map $@.map
