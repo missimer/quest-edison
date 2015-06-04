@@ -5,13 +5,15 @@ TFTPDIR=tftp
 LD = ld -melf_i386
 CC = gcc
 TAR = tar
-ATSCC = atscc 
+ATSCC = atscc
 ATSOPT = atsopt
 CFLAGS = -m32 -march=i586 -fno-builtin -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -nostdinc -g -Wall -Wno-attributes -O$(OPT) $(CFG) $(EXTRA_CFLAGS)
-CPPFLAGS = -D_QUEST -Wa,--32 -MMD -Iinclude -Iinclude/drivers/acpi -I. -I../libc/include 
+CPPFLAGS = -D_QUEST -Wa,--32 -MMD -Iinclude -Iinclude/drivers/acpi -I. -I../libc/include
 ATSFLAGS = -IATS include -I. -Iinclude -Iinclude/drivers/acpi -I../libc/include -g -O$(OPT) -D_ATS_PRELUDE_NONE -D_ATS_DYNLOADFUN_NONE -D_ATS_STALOADFUN_NONE -DATS_TYPES_H -DATS_EXCEPTION_H -DATS_MEMORY_H -D_QUEST
 INDENT = indent
 INDENTFLAGS = -gnu -br -ce --no-tabs
+QEMU=qemu-system-x86_64
+CPU_COUNT ?= 1
 
 ##################################################
 
@@ -111,7 +113,7 @@ LWIP_DEPS = $(patsubst %.c,%.d,$(LWIP_CFILES))
 
 ##################################################
 
-.PHONY: all tags clean cleanacpi cleanlwip vmware cleanall indent netboot
+.PHONY: all tags clean cleanacpi cleanlwip vmware cleanall indent netboot qemu
 
 all: $(PROGS)
 
@@ -139,11 +141,11 @@ vmware: install quest.iso
 	cp quest.iso /mnt/hgfs/shared/quest/
 
 quest.iso: quest $(PROGS) iso-grub.cfg
-	mkdir -p iso/boot/grub 
+	mkdir -p iso/boot/grub
 	cp iso-grub.cfg iso/boot/grub/grub.cfg
 	cp $(GRUB2)/eltorito.img iso/boot/grub/
 	$(TAR) -C iso/boot/grub -jxf $(GRUB2)/mods.tar.bz2
-	cp $(PROGS) welcome.raw iso/boot/ 
+	cp $(PROGS) welcome.raw iso/boot/
 	mkisofs -quiet $(MSINFO) \
 		-R -b boot/grub/eltorito.img \
 		-no-emul-boot -boot-load-size 4 \
@@ -152,18 +154,19 @@ quest.iso: quest $(PROGS) iso-grub.cfg
 indent:
 	(for f in $(CFILES); do [ -f "$$f" ] && $(INDENT) $(INDENTFLAGS) "$$f"; done)
 
+qemu: quest.iso
+	$(QEMU) -cdrom quest.iso -serial stdio -smp cpus=$(CPU_COUNT)
+
 tags:
-	find . -name '*.[ch]' | xargs etags -o TAGS 
+	find . -name '*.[ch]' | xargs etags -o TAGS
 	find . -name '*.[ch]' | xargs ctags -o tags
 
-clean:
+clean: cleanacpi cleanlwpi
 	-rm -f $(OBJS) $(DFILES) $(MAPFILES) $(PROGS) quest.iso quest.map
 	-rm -rf iso tftp
 
 cleanacpi:
 	-rm -f $(ACPI_OBJS) $(ACPI_DEPS)
-
-cleanall: clean cleanacpi cleanlwip
 
 define ACPI_template
 $(1): $(patsubst %.o,%.c,$(1))
