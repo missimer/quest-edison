@@ -8,7 +8,7 @@ TAR = tar
 ATSCC = atscc
 ATSOPT = atsopt
 CFLAGS = -m32 -march=i586 -fno-builtin -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -nostdinc -g -Wall -Wno-attributes -O$(OPT) $(CFG) $(EXTRA_CFLAGS)
-CPPFLAGS = -D_QUEST -Wa,--32 -MMD -Iinclude -Iinclude/drivers/acpi -I. -I../libc/include
+CPPFLAGS =  $(CFG) -D_QUEST -Wa,--32 -MMD -Iinclude -Iinclude/drivers/acpi -I. -I../libc/include
 ATSFLAGS = -IATS include -I. -Iinclude -Iinclude/drivers/acpi -I../libc/include -g -O$(OPT) -D_ATS_PRELUDE_NONE -D_ATS_DYNLOADFUN_NONE -D_ATS_STALOADFUN_NONE -DATS_TYPES_H -DATS_EXCEPTION_H -DATS_MEMORY_H -D_QUEST
 INDENT = indent
 INDENTFLAGS = -gnu -br -ce --no-tabs
@@ -161,7 +161,7 @@ tags:
 	find . -name '*.[ch]' | xargs etags -o TAGS
 	find . -name '*.[ch]' | xargs ctags -o tags
 
-clean: cleanacpi cleanlwpi
+clean: cleanacpi cleanlwip
 	-rm -f $(OBJS) $(DFILES) $(MAPFILES) $(PROGS) quest.iso quest.map
 	-rm -rf iso tftp
 
@@ -170,7 +170,7 @@ cleanacpi:
 
 define ACPI_template
 $(1): $(patsubst %.o,%.c,$(1))
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $$@ -c $$^
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $$@ -c $$<
 endef
 
 $(foreach obj,$(ACPI_OBJS),$(eval $(call ACPI_template,$(obj))))
@@ -197,4 +197,8 @@ cleanlwip:
 config.mk: default-config.mk
 	cp -f default-config.mk config.mk
 
-#-include $(shell find . -name '*.d')
+-include $(DFILES)
+-include $(ACPI_DEPS)
+-include $(LWIP_DEPS)
+
+$(OBJS) $(LWIP_OBJS) $(ACPI_OBJS) : config.mk
