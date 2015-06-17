@@ -58,6 +58,8 @@ char *pchVideo = (char *) KERN_SCR;
 /* PANIC!!!!! */
 void panic (char *sz)
 {
+  com1_printf("kernel panic: ");
+  com1_printf(sz);
   print ("kernel panic: ");
   print (sz);
 

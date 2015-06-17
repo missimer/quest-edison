@@ -17,3 +17,6 @@ OPT = 0
 
 # Use VMX-based virtual machines for isolation
 # CFG += -DUSE_VMX
+
+# Use the memory mapped uart (used by the edison)
+# CFG += -DSERIAL_MMIO32

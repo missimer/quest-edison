@@ -31,6 +31,7 @@
 #include "util/perfmon.h"
 #include "drivers/input/keyboard.h"
 #include "sched/sched.h"
+#include "drivers/serial/serial.h"
 
 extern descriptor idt[];
 
@@ -374,7 +375,12 @@ init (multiboot * pmb)
   /* Initialize Bochs I/O debugging */
   outw (0x8A00, 0x8A00);
 
+#ifdef SERIAL_MMIO32
+  initialize_serial_mmio32 ();
+#else
   initialize_serial_port ();
+#endif
+  com1_printf("serial initialized\n");
 
   pchVideo = (char *)KERN_SCR;
 

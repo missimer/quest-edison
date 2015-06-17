@@ -35,6 +35,10 @@ int getDebugChar (void)
 void
 com1_putc (char c)
 {
+#ifdef SERIAL_MMIO32
+  mmio32_putc(c);
+  return;
+#endif
 #ifdef COM1_TO_SCREEN
   _putchar (c);
 #elif !defined(ENABLE_GDBSTUB) || defined(GDBSTUB_TCP)

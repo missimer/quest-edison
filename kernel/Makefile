@@ -56,7 +56,7 @@ OBJS =  boot/boot.o boot/init.o kernel.o module/loader.o \
 	drivers/usb/rtl8187b.o \
 	drivers/usb/usb_tests.o \
 	drivers/usb/usb.o drivers/usb/enumeration.o \
-	kdb/i386-stub.o
+	kdb/i386-stub.o drivers/serial/mmio32_uart.o
 
 CFILES = $(patsubst %.o,%.c,$(OBJS))
 DFILES = $(patsubst %.o,%.d,$(OBJS))
