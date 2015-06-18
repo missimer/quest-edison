@@ -95,7 +95,9 @@ smp_init (void)
 
   /* Find out how fast the LAPIC can tick -- and correspondingly the
    * CPU bus frequency.  Also finds the RDTSC frequency. */
+#ifndef INTEL_MID
   LAPIC_measure_timer ();
+#endif
 
 
 #ifdef NO_ACPI

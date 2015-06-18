@@ -58,9 +58,13 @@ int
 print (char *pch)
 {
   spinlock_lock (&screen_lock);
+#ifdef INTEL_MID
+  com1_printf("%s", pch);
+#else
   while (*pch)
     _putchar (*pch++);
   spinlock_unlock (&screen_lock);
+#endif
   return 0;
 }
 

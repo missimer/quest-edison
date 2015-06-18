@@ -507,11 +507,13 @@ init (multiboot * pmb)
 
   init_interrupt_handlers ();
 
+#ifndef INTEL_MID
   /* Initialise the programmable interrupt controller (PIC) */
   init_pic ();
 
   /* Initialise the programmable interval timer (PIT) */
   init_pit ();
+#endif
 
   pow2_init ();                 /* initialize power-of-2 memory allocator */
 

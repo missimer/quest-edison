@@ -291,11 +291,15 @@ pci_get_interrupt (uint index, uint* line, uint* pin)
 
 #include "module/header.h"
 
+#ifndef INTEL_MID
+
 static const struct module_ops mod_ops = {
   .init = pci_init
 };
 
 DEF_MODULE (pci, "PCI bus driver", &mod_ops, {});
+
+#endif
 
 /*
  * Local Variables:

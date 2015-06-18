@@ -317,6 +317,9 @@ handle_interrupt (u32 edi, u32 esi, u32 ebp, u32 _esp, u32 ebx, u32 edx, u32 ecx
 static int
 user_putchar (int ch, int attribute)
 {
+#ifdef INTEL_MID
+  com1_printf("%c", (char)ch);
+#else
   static int x, y;
 
   if (ch == '\n') {
@@ -349,6 +352,7 @@ user_putchar (int ch, int attribute)
   outb ((y * 80 + x) & 0xFF, 0x3D5);    /* CRTC Cursor location low data */
 
   return (int) (unsigned char) ch;
+#endif
 }
 
 static void

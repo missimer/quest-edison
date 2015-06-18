@@ -20,3 +20,6 @@ OPT = 0
 
 # Use the memory mapped uart (used by the edison)
 # CFG += -DSERIAL_MMIO32
+
+# Intel Mobile Internet Device (Not PC compatible) MID
+# CFG += -DINTEL_MID

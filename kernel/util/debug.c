@@ -165,8 +165,12 @@ dump_page (u8 *addr)
 
 static int getc (void)
 {
+#ifdef SERIAL_MMIO32
+  return mmio32_getc();
+#else
   while (!(inb (serial_port1 + 5) & 1));
   return inb (serial_port1);
+#endif
 }
 
 void
