@@ -467,23 +467,10 @@ init (multiboot * pmb)
 
   /* Here, clear mm_table entries for any loadable modules. */
   for (i = 0; i < pmb->mods_count; i++) {
-
-    pe = map_virtual_page ((uint32)pmb->mods_addr[i].pe | 3);
-
-    pph = (void *) pe + pe->e_phoff;
-
-    for (j = 0; j < pe->e_phnum; j++) {
-
-      if (pph->p_type == PT_LOAD) {
-        c = (pph->p_filesz + 0xFFF) >> 12;      /* #pages required for module */
-
-        for (k = 0; k < c; k++)
-          BITMAP_CLR (mm_table, (((uint32) pe + pph->p_offset) >> 12) + k);
-      }
-      pph = (void *) pph + pe->e_phentsize;
+    for (j = (((uint32_t) pmb->mods_addr[i].pe) >> 12);
+         j <= (((uint32_t) pmb->mods_addr[i].mod_end) >> 12); j++) {
+      BITMAP_CLR (mm_table, j);
     }
-
-    unmap_virtual_page (pe);
   }
 
   /* Clear bitmap entries for first megabyte of RAM so we don't
