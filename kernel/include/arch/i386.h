@@ -514,11 +514,14 @@ static inline int
 strncmp (const char *a, const char *b, int n)
 {
   int i = 0;
-  while (*a && *b && n-- > 0) {
-    i = *(a++) - *(b++);
+  while (n-- > 0) {
+    i = *a - *b;
     if (i != 0) return i;
+    if(*a == '\0') return 0;
+    a++;
+    b++;
   }
-  return i;
+  return 0;
 }
 
 static inline uint64
