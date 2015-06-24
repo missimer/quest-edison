@@ -44,6 +44,7 @@ OBJS =  boot/boot.o boot/init.o kernel.o module/loader.o \
 	drivers/serial/mcs9922.o \
 	fs/fsys.o \
 	fs/ext2/fsys_ext2fs.o \
+	fs/ram_romfs/fsys_ram_romfs.o \
 	fs/iso9660/fsys_iso9660.o \
 	fs/vfat/fsys_vfat.o \
 	fs/tftp/fsys_tftp.o \
@@ -115,7 +116,13 @@ LWIP_DEPS = $(patsubst %.c,%.d,$(LWIP_CFILES))
 
 .PHONY: all tags clean cleanacpi cleanlwip vmware cleanall indent netboot qemu
 
-all: $(PROGS)
+all: $(PROGS) ramdisk.img
+
+ramdisk.img: $(PROGS)
+	rm -rf $@ ramdisk/
+	mkdir -p ramdisk/
+	cp $(PROGS) ramdisk
+	genromfs -f $@ -d ramdisk/ -V quest
 
 quest: $(OBJS) $(ACPI_OBJS) $(LWIP_OBJS)
 	rm -f quest

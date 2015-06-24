@@ -422,6 +422,16 @@ hw_str (void)
   return us;
 }
 
+static inline
+int atoi(char* s)
+{
+  int v = 0;
+  bool minus = (*s == '-');
+  if(minus) s++;
+  while(*s) v = v*10 + (*s++) - '0';
+
+  return minus ? -v : v;
+}
 
 static inline void
 hw_ltr (uint16 us)
@@ -556,6 +566,15 @@ div_u64_u32_u32 (u64 a, u32 b)
                 :"r" (b), "a" (a_lo), "d" (a_hi));
 
   return c;
+}
+
+
+static inline uint32_t be32toh(uint32_t big_endian_32bits)
+{
+  return (big_endian_32bits << 24) |
+    ((big_endian_32bits <<  8) & 0x00ff0000) |
+    ((big_endian_32bits >>  8) & 0x0000ff00) |
+    ((big_endian_32bits >> 24) & 0x000000ff);
 }
 
 

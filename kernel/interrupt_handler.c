@@ -767,6 +767,9 @@ _getchar (uint ebx)
   lock_kernel ();
 #ifdef SERIAL_MMIO32
   c = mmio32_getc();
+  if(c == '\r') {
+    c = '\n';
+  }
 #else
   if (ebx == 0)
     c = keymap_getchar ();

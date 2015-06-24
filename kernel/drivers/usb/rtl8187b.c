@@ -316,7 +316,6 @@ static __le32 *rtl8187b_ac_addr[4] = {
   (__le32 *) 0xFFF8, /* AC_BE */
 };
 #define SIFS_TIME 0xa
-#define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 
 static void
 conf_erp(bool use_short_slot,
