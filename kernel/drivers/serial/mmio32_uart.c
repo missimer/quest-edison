@@ -65,23 +65,26 @@ wait_for_xmitr (uint32_t port)
     if ((status & BOTH_EMPTY) == BOTH_EMPTY) {
       return;
     }
-    /* asm volatile ("rep;nop": : :"memory"); */
     asm volatile("pause");
   }
 }
 
-static void
-wait_for_rcvrr (uint32_t port)
+static bool
+wait_for_rcvrr (uint32_t port, bool block)
 {
   unsigned int status;
 
   for (;;) {
     status = mmio32_in (port, UART_LSR);
     if ((status & UART_LSR_DR) == UART_LSR_DR) {
-      return;
+      return TRUE;
     }
-    asm volatile("pause");
-    /* asm volatile ("rep;nop": : :"memory"); */
+    if(block) {
+      asm volatile("pause");
+    }
+    else {
+      return FALSE;
+    }
   }
 }
 
@@ -100,16 +103,20 @@ mmio32_putc (char c)
 }
 
 static int
-serial_getc (uint32_t port)
+serial_getc(uint32_t port, bool block)
 {
-  wait_for_rcvrr (port);
-  return mmio32_in (port, UART_RX);
+  if(wait_for_rcvrr (port, block)) {
+    return mmio32_in (port, UART_RX);
+  }
+  else {
+    return -1;
+  }
 }
 
 int
-mmio32_getc ()
+mmio32_getc(bool block)
 {
-  return serial_getc(mmio_base);
+  return serial_getc(mmio_base, block);
 }
 
 unsigned int

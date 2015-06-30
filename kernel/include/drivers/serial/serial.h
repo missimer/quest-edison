@@ -2,6 +2,7 @@
 #define _SERIAL_H_
 
 #include "drivers/serial/serial_reg.h"
+#include "types.h"
 
 #define BASE_BAUD         (1843200/16)
 #define REAL_BAUD         (115200)
@@ -25,7 +26,7 @@
 
 extern void initialize_serial_mmio32 (void);
 extern void mmio32_putc (char);
-extern int mmio32_getc (void);
+extern int mmio32_getc (bool block);
 
 #endif // __ASSEMBLER__
 

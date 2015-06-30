@@ -766,10 +766,19 @@ _getchar (uint ebx)
 
   lock_kernel ();
 #ifdef SERIAL_MMIO32
-  c = mmio32_getc();
-  if(c == '\r') {
-    c = '\n';
+  int d = mmio32_getc(FALSE);
+  while(d == -1) {
+    unlock_kernel();
+    sti();
+    asm volatile("pause");
+    cli();
+    lock_kernel();
+    d = mmio32_getc(FALSE);
   }
+  if(d == '\r') {
+    d = '\n';
+  }
+  c = d;
 #else
   if (ebx == 0)
     c = keymap_getchar ();
