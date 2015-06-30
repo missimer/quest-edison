@@ -148,12 +148,12 @@ vmware: install quest.iso
 	cp c-img.vmdk /mnt/hgfs/shared/quest/
 	cp quest.iso /mnt/hgfs/shared/quest/
 
-quest.iso: quest $(PROGS) iso-grub.cfg
+quest.iso: quest $(PROGS) iso-grub.cfg ramdisk.img
 	mkdir -p iso/boot/grub
 	cp iso-grub.cfg iso/boot/grub/grub.cfg
 	cp $(GRUB2)/eltorito.img iso/boot/grub/
 	$(TAR) -C iso/boot/grub -jxf $(GRUB2)/mods.tar.bz2
-	cp $(PROGS) welcome.raw iso/boot/
+	cp $(PROGS) welcome.raw ramdisk.img iso/boot/
 	mkisofs -quiet $(MSINFO) \
 		-R -b boot/grub/eltorito.img \
 		-no-emul-boot -boot-load-size 4 \

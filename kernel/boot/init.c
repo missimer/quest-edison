@@ -407,7 +407,7 @@ init (multiboot * pmb)
   com1_printf ("root_type=%d\n", root_type);
   if(root_type == VFS_FSYS_EZRAM) {
     ramdisk_module_index = get_ramdisk_index(pmb->cmdline);
-    if( (ramdisk_module_index < 0) || (ramdisk_module_index > (pmb->mods_count - 1)) ) {
+    if( (ramdisk_module_index < 0) || (ramdisk_module_index > (pmb->mods_count)) ) {
       com1_printf("Failed to find valid ramdisk index\n");
       panic("Failed to find valid ramdisk index");
     }

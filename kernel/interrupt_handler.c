@@ -152,9 +152,11 @@ duplicate_TSS (uint32 ebp,
   if (i == 256)
     panic ("No free selector for TSS");
 
+#ifdef DEBUG_SYSCALL
   logger_printf ("duplicate_TSS: pTSS=%p i=0x%x esp=%p ebp=%p\n",
                  pTSS, i << 3,
                  child_esp, child_ebp);
+#endif
 
   /* See pp 6-7 in IA-32 vol 3 docs for meanings of these assignments */
   ad[i].uLimit0 = 0xFFF;        /* --??-- Right now, a page per TSS */
