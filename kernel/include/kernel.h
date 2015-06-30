@@ -65,6 +65,7 @@
 #include "arch/i386.h"
 #include "smp/spinlock.h"
 #include "smp/semaphore.h"
+#include "smp/sfi.h"
 
 struct sched_param
 {
@@ -142,6 +143,7 @@ extern vector_handler get_vector_handler (uint8 vector);
 #define MINIMUM_VECTOR_PRIORITY 0x4
 extern u8 find_unused_vector (u8 min_prio);
 extern void init_interrupt_handlers (void);
+extern sfi_info_t sfi_info;
 
 void stacktrace (void);
 

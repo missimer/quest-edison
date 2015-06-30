@@ -33,6 +33,7 @@
 #include "sched/sched.h"
 #include "drivers/serial/serial.h"
 #include "fs/ram_romfs.h"
+#include "smp/sfi.h"
 
 extern descriptor idt[];
 
@@ -370,6 +371,7 @@ int get_ramdisk_index(char *cmdline)
 
 u32 root_type, boot_device=0;
 int ramdisk_module_index = -1;
+sfi_info_t sfi_info;
 
 void
 init (multiboot * pmb)
@@ -441,23 +443,54 @@ init (multiboot * pmb)
      com1_printf ("Invariant TSC support detected\n");
   }
 
-  for (mmap = (memory_map_t *) pmb->mmap_addr;
-       (uint32) mmap < pmb->mmap_addr + pmb->mmap_length;
-       mmap = (memory_map_t *) ((uint32) mmap
-                                + mmap->size + 4 /*sizeof (mmap->size) */ )) {
+#ifdef NO_SFI
+  if(0) { }
+#else
+  if(sfi_early_init(&sfi_info) < 0) {
+    panic("Simple Firmware Interface initialization failed");
+  }
+  /*
+   * If the SFI memory map table is present use that
+   * instead of the grub memory map
+   */
+  if(sfi_info.mmap_table != NULL) {
+    size_t mmap_num_entries = SFI_NUM_MMAP_ENTRIES(sfi_info.mmap_table);
+    for(i = 0; i < mmap_num_entries; i++) {
+      efi_memory_descriptor_t *descriptor =
+        &sfi_info.mmap_table->memory_descriptors[i];
 
-    /*
-     * Set mm_table bitmap entries to 1 for all pages of RAM that are free.
-     */
-    if (mmap->type == 1) {      /* Available RAM -- see 'info multiboot' */
-      if (mmap->base_addr_high == 0x0) {
-        /* restrict to 4GB RAM */
-        for (i = 0; i < (mmap->length_low >> 12); i++)
-          BITMAP_SET (mm_table, (mmap->base_addr_low >> 12) + i);
-        limit = (mmap->base_addr_low >> 12) + i;
+      if(descriptor->type == EFI_CONVENTIONAL_MEMORY) {
 
-        if (limit > mm_limit)
-          mm_limit = limit;
+        for(j = 0; j < descriptor->num_of_pages; j++) {
+          size_t frame = (descriptor->physical_start >> 12) + j;
+          BITMAP_SET(mm_table, frame);
+          if(frame > mm_limit) {
+            mm_limit = frame;
+          }
+        }
+      }
+    }
+  }
+#endif
+  else {
+    for (mmap = (memory_map_t *) pmb->mmap_addr;
+         (uint32) mmap < pmb->mmap_addr + pmb->mmap_length;
+         mmap = (memory_map_t *) ((uint32) mmap
+                                  + mmap->size + 4 /*sizeof (mmap->size) */ )) {
+
+      /*
+       * Set mm_table bitmap entries to 1 for all pages of RAM that are free.
+       */
+      if (mmap->type == 1) {      /* Available RAM -- see 'info multiboot' */
+        if (mmap->base_addr_high == 0x0) {
+          /* restrict to 4GB RAM */
+          for (i = 0; i < (mmap->length_low >> 12); i++)
+            BITMAP_SET (mm_table, (mmap->base_addr_low >> 12) + i);
+          limit = (mmap->base_addr_low >> 12) + i;
+
+          if (limit > mm_limit)
+            mm_limit = limit;
+        }
       }
     }
   }

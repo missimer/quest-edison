@@ -15,6 +15,9 @@ OPT = 0
 # Disable Intel Multiprocessor Specification parsing
 # CFG += -DNO_INTEL_MPS
 
+# Disable Simple Firmware Interface support
+# CFG += -DNO_SFI
+
 # Use VMX-based virtual machines for isolation
 # CFG += -DUSE_VMX
 

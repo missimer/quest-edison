@@ -50,6 +50,7 @@ OBJS =  boot/boot.o boot/init.o kernel.o module/loader.o \
 	fs/tftp/fsys_tftp.o \
 	drivers/sb16/sound.o \
 	drivers/acpi/quest-acpica.o \
+	smp/sfi.o \
 	drivers/eeprom/93cx6.o \
 	drivers/usb/uhci_hcd.o drivers/usb/uvc.o drivers/usb/umsc.o \
 	drivers/usb/hub.o drivers/usb/net.o drivers/usb/asix.o \

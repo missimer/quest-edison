@@ -61,6 +61,7 @@ uint8 CPU_to_APIC[MAX_CPUS];
 uint8 APIC_to_CPU[MAX_CPUS];
 
 bool mp_ACPI_enabled = 0;
+bool mp_SFI_enabled = 0;
 
 /* I hard-code a check for re-routing of the timer IRQ, but this
  * should probably be folded into a more general interrupt routing
@@ -97,8 +98,13 @@ smp_init (void)
    * CPU bus frequency.  Also finds the RDTSC frequency. */
 #ifndef INTEL_MID
   LAPIC_measure_timer ();
+#else
+  /*
+   * -- EM -- FIXME Hardcoding these values for now
+   */
+  cpu_bus_freq = 0x3BC1AF08;
+  tsc_freq = 0x92FCE800;
 #endif
-
 
 #ifdef NO_ACPI
   if (0);
@@ -114,6 +120,20 @@ smp_init (void)
 #else     
   else if ((intel_mps_init(FALSE)) > 0) {
     /* Intel MPS succeeded */
+  }
+#endif
+
+#ifdef NO_SFI
+  else if(0);
+#else
+  else if(sfi_info.system_table != NULL) {
+    /*
+     * sfi_init is called in init() as it is needed for the memory map, here we
+     * just set mp_SFI_enabled
+     */
+    if(sfi_init(&sfi_info) >= 0) {
+      mp_SFI_enabled = 1;
+    }
   }
 #endif
 
@@ -138,8 +158,12 @@ smp_secondary_init (void)
   if (!mp_ISA_PC)               /* ISA PCs do not have IO APICs */
     IOAPIC_init();
 
-  if(mp_ACPI_enabled)
+  if(mp_ACPI_enabled) {
     acpi_secondary_init();
+  }
+  else if(mp_SFI_enabled) {
+    sfi_secondary_init();
+  }
 
   /* The global variable mp_enabled will be incremented in the PIT IRQ
    * handler, this permits the Application Processors to go ahead and

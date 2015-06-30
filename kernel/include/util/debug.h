@@ -24,6 +24,7 @@ extern void com1_putx (uint32);
 
 void logger_printf (const char *fmt, ...);
 #define DLOG_PREFIX(pre,fmt,...) logger_printf (pre": "fmt"\n", ##__VA_ARGS__)
+#define _DLOG_PREFIX(fmt,...) logger_printf (fmt, ##__VA_ARGS__)
 
 extern bool logger_init (void);
 extern void logger_putc (char);
