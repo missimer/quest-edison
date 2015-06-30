@@ -961,6 +961,9 @@ _interrupt3e (void)
     /* add the current task to the back of the run queue */
     wakeup (str ());
   }
+  /* check sleeping processes */
+  process_sleepqueue ();
+
 
   /* with kernel locked, go ahead and schedule */
   schedule ();
@@ -990,8 +993,6 @@ _timer (void)
   if (mp_enabled) {
     lock_kernel ();
 
-    /* check sleeping processes */
-    process_sleepqueue ();
 
 #if 0
     extern void vcpu_dump_stats (void);
