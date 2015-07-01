@@ -169,6 +169,9 @@ tags:
 	find . -name '*.[ch]' | xargs etags -o TAGS
 	find . -name '*.[ch]' | xargs ctags -o tags
 
+source:
+	objdump -Sdl quest-unstripped | less
+
 clean: cleanacpi cleanlwip
 	-rm -f $(OBJS) $(DFILES) $(MAPFILES) $(PROGS) quest.iso quest.map
 	-rm -rf iso tftp
