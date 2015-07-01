@@ -24,7 +24,9 @@ spinlock screen_lock = { 0 };
 int
 _putchar (int ch)
 {
-
+#ifdef INTEL_MID
+  com1_printf("%c", (uint8) ch);
+#else
   static int x, y;
 
   if (ch == '\n') {
@@ -40,7 +42,7 @@ _putchar (int ch)
   pchVideo[y * 160 + x * 2] = ch;
   pchVideo[y * 160 + x * 2 + 1] = 7;
   x++;
-
+#endif
   return (int) (uint8) ch;
 }
 
