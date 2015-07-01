@@ -39,6 +39,7 @@ extern void *map_virtual_pages (uint32 * phys_frames, uint32 count);
 extern void *map_contiguous_virtual_pages (uint32 phys_frame, uint32 count);
 extern void unmap_virtual_pages (void *virt_addr, uint32 count);
 extern void *get_phys_addr (void *virt_addr);
+void print_page_directory(phys_addr_t pg_dir_phys);
 
 typedef union {
   u32 raw;

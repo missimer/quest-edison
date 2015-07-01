@@ -20,6 +20,15 @@
 #include "types.h"
 #include "mem/physical.h"
 #include "mem/virtual.h"
+#include "util/debug.h"
+
+#define DEBUG_VIRT_MEM
+
+#ifdef DEBUG_VIRT_MEM
+#define DLOG(fmt,...) DLOG_PREFIX("virt-mem",fmt,##__VA_ARGS__)
+#else
+#define DLOG(fmt,...) ;
+#endif
 
 extern uint32 _kernelstart;
 
@@ -158,6 +167,22 @@ unmap_virtual_pages (void *virt_addr, uint32 count)
     unmap_virtual_page (virt_addr + j * 0x1000);
 }
 
+void
+print_page_directory(phys_addr_t pg_dir_phys)
+{
+  uint32 *page_dir = map_virtual_page(pg_dir_phys | 3);
+
+  if(page_dir) {
+    int i;
+    for(i = 0; i < 1024; i++) {
+      DLOG("0x%X : 0x%X", i, page_dir[i]);
+    }
+    unmap_virtual_page(page_dir);
+  }
+  else {
+    DLOG("Failed to map virtual page director");
+  }
+}
 
 void *
 get_phys_addr (void *virt_addr)
