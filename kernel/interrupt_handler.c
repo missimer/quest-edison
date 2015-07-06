@@ -37,6 +37,7 @@
 #include "drivers/input/keyboard.h"
 #include "sched/sched.h"
 #include "sched/vcpu.h"
+#include "drivers/serial/serial.h"
 
 //#define DEBUG_SYSCALL
 //#define DEBUG_PIT
@@ -288,7 +289,8 @@ handle_interrupt (u32 edi, u32 esi, u32 ebp, u32 _esp, u32 ebx, u32 edx, u32 ecx
 #define _printf com1_printf
 #endif
 
-  _printf ("INT=%.2X CODE=%.8X %s\n", 
+  _printf ("PCPU = 0x%X\n", get_pcpu_id());
+  _printf ("INT=%.2X CODE=%.8X %s\n",
            ulInt, ulCode, exception_messages[ulInt]);
   _printf ("EAX=%.8X ESI=%.8X\n", eax, esi);
   _printf ("EBX=%.8X EDI=%.8X\n", ebx, edi);
@@ -353,8 +355,8 @@ user_putchar (int ch, int attribute)
   outb (0x0F, 0x3D4);           /* CRTC Cursor location low index */
   outb ((y * 80 + x) & 0xFF, 0x3D5);    /* CRTC Cursor location low data */
 
-  return (int) (unsigned char) ch;
 #endif
+  return (int) (unsigned char) ch;
 }
 
 static void
@@ -966,6 +968,7 @@ _interrupt3e (void)
   LAPIC_start_timer (cpu_bus_freq / QUANTUM_HZ); /* setup next tick */
 
   lock_kernel ();
+  mp_enabled = TRUE;
 
   if (str () != idleTSS_selector[phys_id]) {
     /* CPU was not idling */

@@ -161,9 +161,6 @@ smp_secondary_init (void)
   if(mp_ACPI_enabled) {
     acpi_secondary_init();
   }
-  else if(mp_SFI_enabled) {
-    sfi_secondary_init();
-  }
 
   /* The global variable mp_enabled will be incremented in the PIT IRQ
    * handler, this permits the Application Processors to go ahead and

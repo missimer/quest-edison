@@ -203,6 +203,6 @@ CASSERT(sizeof(sfi_common_table_header_t) == SFI_TABLE_HEADER_LEN,
 
 int sfi_early_init(sfi_info_t *sfi_info);
 int sfi_init(sfi_info_t *sfi_info);
-void sfi_secondary_init(void);
+void sfi_secondary_init(sfi_info_t *sfi_info);
 
 #endif // _SFI_H_

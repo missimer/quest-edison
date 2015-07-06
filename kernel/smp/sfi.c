@@ -3,6 +3,7 @@
 #include "kernel.h"
 #include "mem/mem.h"
 #include "smp/apic.h"
+#include "util/cpuid.h"
 #include <util/printf.h>
 
 #define DEBUG_SFI
@@ -362,6 +363,37 @@ sfi_early_init(sfi_info_t *sfi_info)
   return 0;
 }
 
+static void
+sfi_ap_init(sfi_info_t *sfi_info)
+{
+#ifndef NO_SMP
+  u32 ebx;
+  size_t i;
+  cpuid (1, 0, NULL, &ebx, NULL, NULL);
+  uint8 this_apic_id = ebx >> 24;
+
+  for(i = 0; i < SFI_NUM_CPUS_ENTRIES(sfi_info->cpus_table); i++) {
+
+    uint8 apic_id = sfi_info->cpus_table->lapic_ids[i];
+
+    if (this_apic_id == apic_id) {
+      com1_printf("Skipping apic_id = %u\n", (size_t)apic_id);
+      continue;
+    }
+
+    if (smp_boot_cpu (apic_id, APIC_VER_NEW)) {
+      CPU_to_APIC[mp_num_cpus] = apic_id;
+      APIC_to_CPU[apic_id] = mp_num_cpus;
+      mp_num_cpus++;
+    }
+    else {
+      com1_printf("Failed to initialize AP core\n");
+      panic("Failed to initialize AP core\n");
+    }
+  }
+#else
+#endif
+}
 
 int sfi_init(sfi_info_t *sfi_info)
 {
@@ -395,10 +427,7 @@ int sfi_init(sfi_info_t *sfi_info)
 
   mp_num_overrides = 0;
 
-  return 0;
-}
+  sfi_ap_init(sfi_info);
 
-void sfi_secondary_init(void)
-{
-  //panic("sfi_secondary_init not implemented");
+  return 0;
 }
