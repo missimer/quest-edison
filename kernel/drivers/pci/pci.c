@@ -231,6 +231,38 @@ mm_probe(uint32 pci_phys, uint32 bus_start, uint32 count)
           uint8 prgIFID   = MM_READ (mm_base, 0x09, byte);
           uint8 header    = MM_READ (mm_base, 0x0E, byte);
 
+          for (i=0; i<0x10; i++) {
+            devices[num_devices].data[i] =
+              /* BTW, misaligned read from PCI config space causes
+               * VMware to crash. :) */
+              MM_READ (mm_base, i<<2, dword);
+          }
+
+#ifdef DEBUG_PCI
+          DLOG ("%.02x:%.02x.%x", bus, slot, func);
+          DLOG ("  %.08x %.08x %.08x %.08x",
+                devices[num_devices].data[0],
+                devices[num_devices].data[1],
+                devices[num_devices].data[2],
+                devices[num_devices].data[3]);
+          DLOG ("  %.08x %.08x %.08x %.08x",
+                devices[num_devices].data[4],
+                devices[num_devices].data[5],
+                devices[num_devices].data[6],
+                devices[num_devices].data[7]);
+          DLOG ("  %.08x %.08x %.08x %.08x",
+                devices[num_devices].data[8],
+                devices[num_devices].data[9],
+                devices[num_devices].data[10],
+                devices[num_devices].data[11]);
+          DLOG ("  %.08x %.08x %.08x %.08x",
+                devices[num_devices].data[12],
+                devices[num_devices].data[13],
+                devices[num_devices].data[14],
+                devices[num_devices].data[15]);
+#endif
+
+
           devices[num_devices].vendor = vendorID;
           devices[num_devices].device = deviceID;
           devices[num_devices].bus = bus;
