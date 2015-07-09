@@ -250,6 +250,65 @@ pci_write_dword (pci_config_addr a, uint32 v)
   outl (v, PCI_CONFIG_DATA);
 }
 
+static inline uint8
+mm_pci_read_byte (void* base, uint32 a)
+{
+  uint16 offs = a & 0x3;
+  uint32 a32, i32;
+  a32 = a & (~0x3);       /* zero out lowest 2 bits */
+  i32 = *((uint32*)(((uint32)base) + a32));
+  /* offs selects the first, second, third, or fourth byte in i32. */
+  return (i32 >> (offs << 3)) & 0xFF;
+}
+
+static inline uint16
+mm_pci_read_word (void* base, uint32 offset)
+{
+  uint16 offs = offset & 0x2;
+  uint32 a32, i32;
+  a32 = offset & (~0x3);       /* zero out lowest 2 bits */
+  i32 = *((uint32*)(((uint32)base) + a32));
+  /* offs selects the first or second word in i32. */
+  return (i32 >> (offs << 3)) & 0xFFFF;
+}
+
+static inline uint32
+mm_pci_read_dword (void* base, uint32 offset)
+{
+  uint32 a32, i32;
+  a32 = offset & (~0x3);       /* zero out lowest 2 bits */
+  i32 = *((uint32*)(((uint32)base) + a32));
+  return i32;
+}
+
+static inline void
+mm_pci_write_byte (void* base, uint32 offset, uint8 v)
+{
+  uint16 offs = offset & 0x3;
+  uint32 a32;
+  a32 = offset & (~0x3);       /* zero out lowest 2 bits */
+  *((uint8*)(((uint32)base) + a32 + offs)) = v;
+}
+
+static inline void
+mm_pci_write_word (void* base, uint32 offset, uint16 v)
+{
+  uint16 offs = offset & 0x2;
+  uint32 a32;
+  a32 = offset & (~0x3);       /* zero out lowest 2 bits */
+  *((uint16*)(((uint32)base) + a32 + offs)) = v;
+}
+
+static inline void
+mm_pci_write_dword (void* base, uint32 offset, uint32 v)
+{
+  uint32 a32;
+  a32 = offset & (~0x3);       /* zero out lowest 2 bits */
+  *((uint32*)(((uint32)base) + a32)) = v;
+}
+
+
+
 #endif
 
 /*

@@ -22,6 +22,7 @@
 #include "smp/smp.h"
 #include "smp/apic.h"
 #include "kernel.h"
+#include "mem/mem.h"
 
 #define DEBUG_PCI
 
@@ -31,12 +32,25 @@
 #define DLOG(fmt,...) ;
 #endif
 
+#define PCI_DEVICE_OFFSET(_bus, _slot, _func)                        \
+  ((((_bus)    & 0xFF) << 20) |                                      \
+   (((_slot)   & 0x1F) << 15) |                                      \
+   (((_func)   & 0x07) << 12))
 
-#define READ(bus, slot, func, reg, type) \
+#define MM_PCI_OFFSET(_extReg, _reg)                                 \
+  ((((_extReg) & 0x0F) << 8)  |                                      \
+   (((_reg)    & 0xFF) << 0))
+
+
+#define READ(bus, slot, func, reg, type)                \
   pci_read_##type (pci_addr (bus, slot, func, reg))
-#define WRITE(bus, slot, func, reg, type, val) \
+#define WRITE(bus, slot, func, reg, type, val)                  \
   pci_write_##type (pci_addr (bus, slot, func, reg), val)
 
+#define MM_READ(base, reg, type)                        \
+  mm_pci_read_##type ((base), MM_PCI_OFFSET(0, (reg)))
+#define MM_WRITE(base, reg, type, val)                          \
+  mm_pci_write_##type ((base), MM_PCI_OFFSET(0, (reg)), (val))
 
 bool
 pci_search_ven_table (uint32 vendor, PCI_VENTABLE* e)
@@ -196,11 +210,80 @@ probe (void)
 
 }
 
+static void
+mm_probe(uint32 pci_phys, uint32 bus_start, uint32 count)
+{
+  uint32 bus, slot, func, i;
+  for (bus=bus_start; bus < (bus_start + count); bus++) {
+    for (slot=0; slot <= PCI_MAX_DEV_NUM; slot++) {
+      for (func=0; func <= PCI_MAX_FUNC_NUM; func++) {
+        void *mm_base = map_virtual_page((pci_phys +
+                                          PCI_DEVICE_OFFSET(bus, slot, func)) | 3);
+        if(mm_base == NULL) {
+          panic("Failed to map pci configuration space during enumeration");
+        }
+        if (MM_READ (mm_base, 0x00, dword) != 0xFFFFFFFF) {
+
+          uint16 vendorID = MM_READ (mm_base, 0x00, word);
+          uint16 deviceID = MM_READ (mm_base, 0x02, word);
+          uint8 classID   = MM_READ (mm_base, 0x0B, byte);
+          uint8 subclID   = MM_READ (mm_base, 0x0A, byte);
+          uint8 prgIFID   = MM_READ (mm_base, 0x09, byte);
+          uint8 header    = MM_READ (mm_base, 0x0E, byte);
+
+          devices[num_devices].vendor = vendorID;
+          devices[num_devices].device = deviceID;
+          devices[num_devices].bus = bus;
+          devices[num_devices].slot = slot;
+          devices[num_devices].func = func;
+          devices[num_devices].classcode = classID;
+          devices[num_devices].subclass = subclID;
+          devices[num_devices].progIF = prgIFID;
+          devices[num_devices].headerType = header;
+          devices[num_devices].index = num_devices;
+
+          if ((header & 0x7F) == 0) {
+            /* 6 BARs */
+            for (i=0; i<6; i++) {
+              devices[num_devices].bar[i].raw = devices[num_devices].data[4+i];
+              if (devices[num_devices].bar[i].raw != 0) {
+                /* Save raw data */
+                uint32 raw = devices[num_devices].bar[i].raw;
+                /* Fill with 1s */
+                MM_WRITE (mm_base, 0x10 + i*4, dword, ~0);
+                /* Read back mask */
+                uint32 mask = MM_READ (mm_base, 0x10 + i*4, dword);
+                devices[num_devices].bar[i].mask = mask;
+                /* Restore raw data */
+                MM_WRITE (mm_base, 0x10 + i*4, dword, raw);
+              }
+            }
+          }
+          num_devices++;
+          if (num_devices >= PCI_MAX_DEVICES) /* reached our limit */
+            return;
+        }
+        unmap_virtual_page(mm_base);
+      }
+    }
+  }
+}
+
 bool
 pci_init (void)
 {
-  DLOG("init");
-  probe ();
+  if(sfi_info.mcfg_table != NULL) {
+    if(SFI_NUM_MCFG_ENTRIES(sfi_info.mcfg_table) != 1) {
+      panic("sfi can only handle one mcfg table entry");
+    }
+    mm_probe(sfi_info.mcfg_table->entries[0].Address,
+             sfi_info.mcfg_table->entries[0].StartBusNumber,
+             sfi_info.mcfg_table->entries[0].EndBusNumber -
+             sfi_info.mcfg_table->entries[0].StartBusNumber + 1);
+  }
+  else {
+    probe ();
+  }
   return TRUE;
 }
 
@@ -291,15 +374,12 @@ pci_get_interrupt (uint index, uint* line, uint* pin)
 
 #include "module/header.h"
 
-#ifndef INTEL_MID
 
 static const struct module_ops mod_ops = {
   .init = pci_init
 };
 
 DEF_MODULE (pci, "PCI bus driver", &mod_ops, {});
-
-#endif
 
 /*
  * Local Variables:

@@ -74,13 +74,14 @@ static void
 print_syst_table(sfi_info_t *sfi_info)
 {
   size_t i;
-  DLOGV("Number of SFI table entries: %u", SFI_NUM_SYST_ENTRIES(sfi_info->system_table));
+  DLOGV("Number of SFI table entries: %u",
+        SFI_NUM_SYST_ENTRIES(sfi_info->system_table));
   for(i = 0; i < SFI_NUM_SYST_ENTRIES(sfi_info->system_table); i++) {
 #ifdef DEBUG_SFI_VERBOSE
     sfi_common_table_header_t *table = (sfi_common_table_header_t*)
       SFI_PHYS_TO_VIRT(sfi_info, sfi_info->system_table->entries[i]);
 #endif
-     DLOGV("syst_table[%u] 0x%X %c%c%c%c", sfi_info->system_table->entries[i],
+    DLOGV("syst_table[%u] 0x%X %c%c%c%c", i, sfi_info->system_table->entries[i],
           table->signature[0], table->signature[1], table->signature[2],
           table->signature[3]);
   }
@@ -278,6 +279,62 @@ print_devs_table(sfi_info_t *sfi_info)
   }
 }
 
+static void print_mcfg_table(sfi_info_t *sfi_info)
+{
+  if(sfi_info->mcfg_table) {
+    DLOGV("Number of MCFG table entries: %u",
+          SFI_NUM_MCFG_ENTRIES(sfi_info->mcfg_table));
+    size_t i;
+    DLOGV("(Address, PciSegment, StartBusNumber, EndBusNumber)");
+    for(i = 0; i < SFI_NUM_MCFG_ENTRIES(sfi_info->mcfg_table); i++) {
+      DLOGV("(0x%llX, 0x%X, 0x%X, 0x%X)",
+            sfi_info->mcfg_table->entries[i].Address,
+            (uint32)sfi_info->mcfg_table->entries[i].PciSegment,
+            (uint32)sfi_info->mcfg_table->entries[i].StartBusNumber,
+            (uint32)sfi_info->mcfg_table->entries[i].EndBusNumber);
+    }
+  }
+  else {
+    DLOGV("No MCFG Table");
+  }
+}
+
+static void
+print_xsdt_table(sfi_info_t *sfi_info)
+{
+  if(sfi_info->xsdt_table) {
+    size_t i;
+    DLOGV("Number of XSDT table entries: %u",
+          SFI_NUM_XSDT_ENTRIES(sfi_info->xsdt_table));
+    DLOGV("(addr, name)");
+    for(i = 0; i < SFI_NUM_XSDT_ENTRIES(sfi_info->xsdt_table); i++) {
+      ACPI_TABLE_HEADER *table = (ACPI_TABLE_HEADER*)
+        map_virtual_page((sfi_info->xsdt_table->TableOffsetEntry[i] & 0xFFFFF000) | 3);
+
+      if(table == NULL) {
+        panic("Failed to map XSDT sub-table");
+      }
+
+      table = (ACPI_TABLE_HEADER*)(uint32)
+        (((uint32)table) | (sfi_info->xsdt_table->TableOffsetEntry[i] & 0xFFF));
+
+      DLOGV("(0x%llX, %c%c%c%c)", sfi_info->xsdt_table->TableOffsetEntry[i],
+            table->Signature[0], table->Signature[1], table->Signature[2],
+            table->Signature[3]);
+      if(strncmp(table->Signature, SFI_SIG_MCFG, 4) == 0) {
+        sfi_info->mcfg_table = (sfi_mcfg_table_t*)table;
+        print_mcfg_table(sfi_info);
+      }
+      else {
+        unmap_virtual_page(table);
+      }
+    }
+  }
+  else {
+    DLOGV("NO XSDT Table");
+  }
+}
+
 int
 sfi_early_init(sfi_info_t *sfi_info)
 {
@@ -359,6 +416,9 @@ sfi_early_init(sfi_info_t *sfi_info)
 
   sfi_info->gpio_table = get_sfi_table(sfi_info, SFI_SIG_GPIO);
   print_gpio_table(sfi_info);
+
+  sfi_info->xsdt_table = get_sfi_table(sfi_info, SFI_SIG_XSDT);
+  print_xsdt_table(sfi_info);
 
   return 0;
 }

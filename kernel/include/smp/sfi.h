@@ -1,5 +1,6 @@
 #include "types.h"
 #include "util/cassert.h"
+#include"drivers/acpi/acpi.h"
 
 #ifndef _SFI_H_
 #define _SFI_H_
@@ -16,6 +17,7 @@
 #define SFI_SIG_WAKE "WAKE"
 #define SFI_SIG_DEVS "DEVS"
 #define SFI_SIG_GPIO "GPIO"
+#define SFI_SIG_MCFG "MCFG"
 #define SFI_SIG_SIZE 4
 
 #define SFI_SYST_SEARCH_BEGIN           0x000E0000
@@ -144,8 +146,6 @@ typedef struct {
   sfi_device_t devices[];
 } PACKED sfi_devs_table_t;
 
-
-
 typedef struct {
   char controller_name[16];
   uint16 pin_number;
@@ -158,6 +158,19 @@ typedef struct {
   sfi_common_table_header_t common;
   sfi_gpio_t gpios[];
 } PACKED sfi_gpio_table_t;
+
+typedef struct {
+  sfi_common_table_header_t common;
+  uint64 entries[];
+} PACKED sfi_xsdt_table_t;
+
+typedef struct {
+  ACPI_TABLE_HEADER acpi_header;
+  uint8 reserved[8];
+  ACPI_MCFG_ALLOCATION entries[0];
+} PACKED sfi_mcfg_table_t;
+
+CASSERT(sizeof(ACPI_MCFG_ALLOCATION) == 16, MCFG_allocation_size);
 
 typedef struct {
   void* start_addr;
@@ -173,6 +186,8 @@ typedef struct {
   sfi_wake_table_t *wake_table;
   sfi_devs_table_t *devs_table;
   sfi_gpio_table_t *gpio_table;
+  ACPI_TABLE_XSDT *xsdt_table;
+  sfi_mcfg_table_t *mcfg_table;
 } sfi_info_t;
 
 CASSERT(sizeof(sfi_common_table_header_t) == SFI_TABLE_HEADER_LEN,
@@ -198,6 +213,11 @@ CASSERT(sizeof(sfi_common_table_header_t) == SFI_TABLE_HEADER_LEN,
   SFI_NUM_ENTRIES(_table, sizeof(sfi_device_t))
 #define SFI_NUM_GPIO_ENTRIES(_table)                                          \
   SFI_NUM_ENTRIES(_table, sizeof(sfi_gpio_t))
+#define SFI_NUM_XSDT_ENTRIES(_table)                                          \
+  (((_table)->Header.Length - sizeof(ACPI_TABLE_HEADER)) / (sizeof(uint64)))
+#define SFI_NUM_MCFG_ENTRIES(_table)                                          \
+  (((_table)->acpi_header.Length - sizeof(ACPI_TABLE_HEADER))                 \
+   / (sizeof(ACPI_MCFG_ALLOCATION)))
 
 
 
