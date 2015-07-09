@@ -19,8 +19,18 @@
 #include "types.h"
 #include "mem/mem.h"
 #include "kernel.h"
+#include "drivers/pci/pci.h"
+#include "util/debug.h"
 
-static uint32_t mmio_base = MMIO32_MEMBASE;
+#define DEBUG_MMIO32_UART
+
+#ifdef DEBUG_MMIO32_UART
+#define DLOG(fmt,...) DLOG_PREFIX("mmio32-uart",fmt,##__VA_ARGS__)
+#else
+#define DLOG(fmt,...) ;
+#endif
+
+static uint32_t mmio_base = 0;
 
 #define writel(val, addr) *((volatile uint32 *)addr) = val
 #define writeb(val, addr) *((volatile uint8 *)addr) = val
@@ -98,8 +108,10 @@ serial_putc (uint32_t port, int c)
 void
 mmio32_putc (char c)
 {
-  if (c == '\n') serial_putc (mmio_base, '\r');
-  serial_putc (mmio_base, c);
+  if(mmio_base) {
+    if (c == '\n') serial_putc (mmio_base, '\r');
+    serial_putc (mmio_base, c);
+  }
 }
 
 static int
@@ -116,7 +128,12 @@ serial_getc(uint32_t port, bool block)
 int
 mmio32_getc(bool block)
 {
-  return serial_getc(mmio_base, block);
+  if(mmio_base) {
+    return serial_getc(mmio_base, block);
+  }
+  else {
+    return 0;
+  }
 }
 
 unsigned int
@@ -136,19 +153,22 @@ probe_baud(uint32_t port)
 }
 
 void
-initialize_serial_mmio32 (void)
+serial_mmio32_manual_init(uint32 phys_addr)
 {
   uint32_t port;
   unsigned int divisor;
   unsigned char c;
 
-  BITMAP_SET(mm_table, MMIO32_MEMBASE >> 12);
-  mmio_base = (uint32)map_virtual_page((MMIO32_MEMBASE & 0xFFFFF000) | 3);
+  BITMAP_SET(mm_table, phys_addr >> 12);
+  if(mmio_base) {
+    unmap_virtual_page((void*)mmio_base);
+  }
+  mmio_base = (uint32)map_virtual_page((phys_addr & 0xFFFFF000) | 3);
 
   if(mmio_base == 0) {
     panic("Failed to setup mmio_base");
   }
-  mmio_base |= (0xFFF & MMIO32_MEMBASE);
+  mmio_base |= (0xFFF & phys_addr);
 
   port = mmio_base;
 
@@ -166,6 +186,105 @@ initialize_serial_mmio32 (void)
   mmio32_out (port, UART_DLM, (divisor >> 8) & 0xff);
   mmio32_out (port, UART_LCR, c & ~UART_LCR_DLAB);
 }
+
+static uint32
+mmio32_irq_handler(uint8 vec)
+{
+  panic("mmio32_irq_handler not implemented");
+}
+
+static bool
+serial_mmio32_init(void)
+{
+  uint i, device_index, irq_pin;
+  pci_device serial_device;
+  pci_irq_t irq;
+  int bus, dev, func;
+  uint irq_line;
+  uint32 bar0;
+
+  if (mp_ISA_PC) {
+    DLOG ("Cannot operate without PCI");
+    return FALSE;
+  }
+
+  /* Find the serial device on the PCI bus */
+  device_index = ~0;
+  i=0;
+  while (pci_find_device (0xFFFF, 0xFFFF, 0x07, 0x00, i, &i)) {
+    if (pci_get_device (i, &serial_device)) {
+      if (serial_device.progIF == 0x02) {
+        device_index = i;
+        break;
+      }
+      i++;
+    } else break;
+  }
+
+  if (device_index == ~0) {
+    DLOG ("Unable to find compatible device on PCI bus");
+    return FALSE;
+  }
+
+  device_index += 3;
+
+  if (!pci_get_device (device_index, &serial_device)) {
+    DLOG ("Unable to get PCI device from PCI subsystem");
+    return FALSE;
+  }
+
+  if(serial_device.classcode != 0x07 ||
+     serial_device.subclass  != 0x00 ||
+     serial_device.progIF    != 0x02 ||
+     serial_device.func      != 0x03) {
+    return FALSE;
+  }
+
+  bus = serial_device.bus;
+  dev = serial_device.slot;
+  func = serial_device.func;
+
+  DLOG ("Using PCI bus=%x dev=%x func=%x", bus, dev, func);
+
+  if (!pci_get_interrupt (device_index, &irq_line, &irq_pin)) {
+    DLOG ("Unable to get IRQ");
+    return FALSE;
+  }
+
+  DLOG ("Using IRQ pin=%X", irq_pin);
+
+  if (pci_irq_find (bus, dev, irq_pin, &irq)) {
+    /* use PCI routing table */
+    DLOG ("Found PCI routing entry irq.gsi=0x%x", irq.gsi);
+    if (!pci_irq_map_handler (&irq, mmio32_irq_handler, 0x01,
+                              IOAPIC_DESTINATION_LOGICAL,
+                              IOAPIC_DELIVERY_FIXED)) {
+      DLOG ("Unable to map IRQ handler");
+      return FALSE;
+    }
+    irq_line = irq.gsi;
+  }
+
+  if (!pci_decode_bar (device_index, 0, &bar0, NULL, NULL)) {
+    DLOG ("unable to decode BAR0");
+    return FALSE;
+  }
+
+  serial_mmio32_manual_init(bar0);
+
+  DLOG("Done with serial init");
+
+  return TRUE;
+
+}
+
+#include "module/header.h"
+
+static const struct module_ops mod_ops = {
+  .init = serial_mmio32_init
+};
+
+DEF_MODULE (mm_serial, "Memory Mapped UART driver", &mod_ops, {"pci"});
 
 
 /* vi: set et sw=2 sts=2: */

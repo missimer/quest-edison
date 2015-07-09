@@ -24,5 +24,10 @@ OPT = 0
 # Use the memory mapped uart (used by the edison)
 # CFG += -DSERIAL_MMIO32
 
+# The physical address for serial_mmio32, specify if you want to boot print
+# messages.  After PCI enumeration the mmio32 serial device is detected and
+# initialized using the PCI information.
+#CFG += -DMMIO32_MEMBASE=0xff010180
+
 # Intel Mobile Internet Device (Not PC compatible) MID
 # CFG += -DINTEL_MID

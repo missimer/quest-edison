@@ -7,7 +7,6 @@
 #define BASE_BAUD         (1843200/16)
 #define REAL_BAUD         (115200)
 #define BAUD              (REAL_BAUD/24)
-#define MMIO32_MEMBASE    (0xff010180)
 
 #ifndef __ASSEMBLER__
 
@@ -24,7 +23,7 @@
 }                                                       \
 )
 
-extern void initialize_serial_mmio32 (void);
+extern void serial_mmio32_manual_init(uint32 phys_addr);
 extern void mmio32_putc (char);
 extern int mmio32_getc (bool block);
 

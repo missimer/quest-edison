@@ -386,7 +386,9 @@ init (multiboot * pmb)
   outw (0x8A00, 0x8A00);
 
 #ifdef SERIAL_MMIO32
-  initialize_serial_mmio32 ();
+#  ifdef MMIO32_MEMBASE
+  serial_mmio32_manual_init (MMIO32_MEMBASE);
+#  endif
 #else
   initialize_serial_port ();
 #endif
