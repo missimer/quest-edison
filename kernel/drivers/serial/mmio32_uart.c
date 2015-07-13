@@ -244,26 +244,26 @@ serial_mmio32_init(void)
   dev = serial_device.slot;
   func = serial_device.func;
 
-  DLOG ("Using PCI bus=%x dev=%x func=%x", bus, dev, func);
+  /* DLOG ("Using PCI bus=%x dev=%x func=%x", bus, dev, func); */
 
-  if (!pci_get_interrupt (device_index, &irq_line, &irq_pin)) {
-    DLOG ("Unable to get IRQ");
-    return FALSE;
-  }
+  /* if (!pci_get_interrupt (device_index, &irq_line, &irq_pin)) { */
+  /*   DLOG ("Unable to get IRQ"); */
+  /*   return FALSE; */
+  /* } */
 
-  DLOG ("Using IRQ pin=%X", irq_pin);
+  /* DLOG ("Using IRQ pin=%X", irq_pin); */
 
-  if (pci_irq_find (bus, dev, irq_pin, &irq)) {
-    /* use PCI routing table */
-    DLOG ("Found PCI routing entry irq.gsi=0x%x", irq.gsi);
-    if (!pci_irq_map_handler (&irq, mmio32_irq_handler, 0x01,
-                              IOAPIC_DESTINATION_LOGICAL,
-                              IOAPIC_DELIVERY_FIXED)) {
-      DLOG ("Unable to map IRQ handler");
-      return FALSE;
-    }
-    irq_line = irq.gsi;
-  }
+  /* if (pci_irq_find (bus, dev, irq_pin, &irq)) { */
+  /*   /\* use PCI routing table *\/ */
+  /*   DLOG ("Found PCI routing entry irq.gsi=0x%x", irq.gsi); */
+  /*   if (!pci_irq_map_handler (&irq, mmio32_irq_handler, 0x01, */
+  /*                             IOAPIC_DESTINATION_LOGICAL, */
+  /*                             IOAPIC_DELIVERY_FIXED)) { */
+  /*     DLOG ("Unable to map IRQ handler"); */
+  /*     return FALSE; */
+  /*   } */
+  /*   irq_line = irq.gsi; */
+  /* } */
 
   if (!pci_decode_bar (device_index, 0, &bar0, NULL, NULL)) {
     DLOG ("unable to decode BAR0");
