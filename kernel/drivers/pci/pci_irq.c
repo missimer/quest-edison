@@ -47,8 +47,8 @@ pci_irq_register (pci_irq_t *irq)
     DLOG ("Exceeded PCI_IRQ_MAX_COUNT");
     return;
   }
-  DLOG ("Registering %.02X:%.02X Pin %d as GSI=0x%.02X (T=%d P=%d)",
-        irq->bus, irq->dev, irq->pin, irq->gsi, irq->trigger, irq->polarity);
+  DLOG ("Registering Pin %d as GSI=0x%.02X (T=%d P=%d)",
+        irq->pin, irq->gsi, irq->trigger, irq->polarity);
   memcpy (&pci_irqs[num_pci_irqs], irq, sizeof (pci_irq_t));
 
   num_pci_irqs++;
@@ -60,7 +60,7 @@ pci_irq_find (uint8 bus, uint8 dev, uint8 pin, pci_irq_t *irq_out)
 {
   uint i;
   for (i=0; i<num_pci_irqs; i++) {
-    if (pci_irqs[i].bus == bus && pci_irqs[i].dev == dev && pci_irqs[i].pin == pin) {
+    if (pci_irqs[i].pin == pin) {
       memcpy (irq_out, &pci_irqs[i], sizeof (pci_irq_t));
       return TRUE;
     }

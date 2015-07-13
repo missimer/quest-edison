@@ -240,6 +240,7 @@ mm_probe(uint32 pci_phys, uint32 bus_start, uint32 count)
 
 #ifdef DEBUG_PCI
           DLOG ("%.02x:%.02x.%x", bus, slot, func);
+          DLOG("header = 0x%X", header);
           DLOG ("  %.08x %.08x %.08x %.08x",
                 devices[num_devices].data[0],
                 devices[num_devices].data[1],

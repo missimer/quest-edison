@@ -122,8 +122,6 @@ enum {
 
 /* PCI IRQ table entry */
 typedef struct {
-  uint8 bus;
-  uint8 dev:5;
   uint8 pin:3;
   uint8 gsi;
   uint8 trigger:4;

@@ -570,8 +570,6 @@ DisplayOneDevice (ACPI_HANDLE ObjHandle, UINT32 Level, void *Context,
       if (prtd->Length == 0) break;
 
       if (pcibus) {
-        irq.bus = busnum;
-        irq.dev = (uint32) ((prtd->Address >> 16) & 0xFF);
         irq.pin = prtd->Pin + 1; /* ACPI numbers pins from 0 */
         irq.gsi = 0;
       }

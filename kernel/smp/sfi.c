@@ -4,6 +4,7 @@
 #include "mem/mem.h"
 #include "smp/apic.h"
 #include "util/cpuid.h"
+#include "drivers/pci/pci.h"
 #include <util/printf.h>
 
 #define DEBUG_SFI
@@ -457,6 +458,7 @@ sfi_ap_init(sfi_info_t *sfi_info)
 
 int sfi_init(sfi_info_t *sfi_info)
 {
+  int i;
   extern uint32 mp_LAPIC_addr;
   extern uint32 mp_num_IOAPICs;
   extern uint32 mp_IOAPIC_addr;
@@ -480,6 +482,17 @@ int sfi_init(sfi_info_t *sfi_info)
   mp_IOAPICs[0].address = mp_IOAPIC_addr;
   mp_IOAPICs[0].startGSI = 0;
   mp_IOAPICs[0].numGSIs = 0x34;
+
+  for(i = mp_IOAPICs[0].startGSI;
+      i < mp_IOAPICs[0].numGSIs;
+      i++) {
+    pci_irq_t pci_irq;
+    pci_irq.trigger = PCI_DEFAULT_TRIGGER;
+    pci_irq.polarity = PCI_DEFAULT_POLARITY;
+    pci_irq.gsi = i;
+    pci_irq.pin = i;
+    pci_irq_register(&pci_irq);
+  }
 
   DLOG("mp_LAPIC_addr = 0x%X", mp_LAPIC_addr);
   DLOG("mp_num_IOAPICs = 0x%X", mp_num_IOAPICs);

@@ -60,6 +60,7 @@ void panic (char *sz)
 {
   com1_printf("kernel panic: ");
   com1_printf(sz);
+  com1_printf("\n");
   print ("kernel panic: ");
   print (sz);
 

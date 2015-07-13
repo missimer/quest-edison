@@ -268,12 +268,10 @@ process_mp_config (struct mp_config *cfg, bool pci_irq_only)
       if (entry->IO_int.source_bus_id != mp_ISA_bus_id) {
         /* assume it's PCI */
         pci_irq_t irq;
-        irq.bus = entry->IO_int.source_bus_id;
         /* Section D.3:
          *   SOURCE BUS IRQ bits 0-1 are PCI PIN (counting from 0)
          *   SOURCE BUS IRQ bits 2-6 are PCI Device Number */
         irq.pin = (entry->IO_int.source_bus_irq & 0x03) + 1;
-        irq.dev = (entry->IO_int.source_bus_irq & 0x7C) >> 2;
         irq.gsi =
           IOAPIC_lookup (entry->IO_int.dest_APIC_id)->startGSI +
           entry->IO_int.dest_APIC_intin;
