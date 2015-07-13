@@ -163,7 +163,7 @@ serial_mmio32_manual_init(uint32 phys_addr)
   if(mmio_base) {
     unmap_virtual_page((void*)mmio_base);
   }
-  mmio_base = (uint32)map_virtual_page((phys_addr & 0xFFFFF000) | 3);
+  mmio_base = (uint32)map_virtual_page((phys_addr & 0xFFFFF000) | 0x13);
 
   if(mmio_base == 0) {
     panic("Failed to setup mmio_base");
