@@ -32,10 +32,6 @@
 
 static uint32_t mmio_base = 0;
 
-#define writel(val, addr) *((volatile uint32 *)addr) = val
-#define writeb(val, addr) *((volatile uint8 *)addr) = val
-#define readl(addr) (*((volatile uint32 *)addr))
-#define readb(addr) (*((volatile uint8 *)addr))
 
 static inline void
 mmio32_out(uint32_t port, int offset, int value)

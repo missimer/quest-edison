@@ -38,6 +38,9 @@
 #include "sched/sched.h"
 #include "sched/vcpu.h"
 #include "drivers/serial/serial.h"
+#include "drivers/gpio/gpio.h"
+#include "drivers/gpio/langwell.h"
+#include "drivers/pci/pci.h"
 
 //#define DEBUG_SYSCALL
 //#define DEBUG_PIT
@@ -122,7 +125,7 @@ duplicate_TSS (uint32 ebp,
                uint32 child_eip,
                uint32 child_ebp,
                uint32 child_esp,
-               uint32 child_eflags, 
+               uint32 child_eflags,
                uint32 child_directory)
 {
 
@@ -392,7 +395,7 @@ splash_screen (void)
 
 /* Syscalls */
 static u32
-syscall_putchar (u32 eax, u32 ebx)
+syscall_putchar (u32 eax, u32 ebx, u32 ecx, u32 edx, u32 esi)
 {
   static bool first = TRUE;
 
@@ -402,28 +405,87 @@ syscall_putchar (u32 eax, u32 ebx)
 }
 
 static u32
-syscall_usleep (u32 eax, u32 ebx)
+syscall_usleep (u32 eax, u32 ebx, u32 ecx, u32 edx, u32 esi)
 {
   sched_usleep (ebx);
   return ebx;
 }
 
+#define GPIO_DIRECTION_INPUT_FUNC  0
+#define GPIO_DIRECTION_OUTPUT_FUNC 1
+#define GPIO_SET_VAL_OUTPUT_FUNC   2
+#define GPIO_SET_PININFO           3
+
+static u32
+syscall_gpio (u32 syscall_id, u32 func, u32 pin, u32 arg1, u32 arg2)
+{
+  switch(func) {
+  case GPIO_DIRECTION_INPUT_FUNC:
+    return lnw_gpio.chip.direction_input(&lnw_gpio.chip, pin);
+
+  case GPIO_DIRECTION_OUTPUT_FUNC:
+    return lnw_gpio.chip.direction_output(&lnw_gpio.chip, pin, *(int*)(&arg1));
+
+  case GPIO_SET_VAL_OUTPUT_FUNC:
+    lnw_gpio.chip.set(&lnw_gpio.chip, pin, *(int*)(&arg1));
+    return 0;
+
+  case GPIO_SET_PININFO:
+    lnw_set_pininfo(&lnw_gpio, pin, arg1, (char*)arg2);
+    return 0;
+  }
+
+  return -1;
+}
+
+static u32
+syscall_map_pci_resource(u32 syscall_id, u32 vendorid, u32 deviceid,
+                         u32 class_and_sub_code, u32 res_num)
+{
+  uint index;
+  void* res;
+  uint8_t class_code = (class_and_sub_code >> 8) & 0xFF;
+  uint8_t sub_code = class_and_sub_code & 0xFF;
+  uint32 bar;
+
+  com1_printf("class_and_sub_code = 0x%X\n", class_and_sub_code);
+  com1_printf("res_num = %u\n", res_num);
+  com1_printf("vendorid = 0x%X, deviceid = 0x%X, class_code = 0x%X, sub_code = 0x%X\n",
+              vendorid, deviceid, class_code, sub_code);
+  if(pci_find_device(vendorid, deviceid, class_code, sub_code, 0, &index)) {
+    if (!pci_decode_bar (index, res_num, &bar, NULL, NULL)) {
+      com1_printf("unable to decode BAR\n");
+      return (u32)NULL;
+    }
+
+    res = map_user_virtual_page((bar & 0xFFFFF000) | 0x1F);
+    com1_printf("res = 0x%X\n", res);
+
+    return res;
+  }
+  else {
+    return (u32)NULL;
+  }
+}
+
 struct syscall {
-  u32 (*func) (u32, u32);
+  u32 (*func) (u32, u32, u32, u32, u32);
 };
 struct syscall syscall_table[] = {
   { .func = syscall_putchar },
   { .func = syscall_usleep },
+  { .func = syscall_gpio },
+  { .func = syscall_map_pci_resource },
 };
 #define NUM_SYSCALLS (sizeof (syscall_table) / sizeof (struct syscall))
 
 u32
-handle_syscall0 (u32 eax, u32 ebx)
+handle_syscall0 (u32 eax, u32 ebx, u32 ecx, u32 edx, u32 esi)
 {
   u32 res;
   lock_kernel ();
   if (eax < NUM_SYSCALLS)
-    res = syscall_table[eax].func (eax, ebx);
+    res = syscall_table[eax].func (eax, ebx, ecx, edx, esi);
   else
     res = 0;
   unlock_kernel ();
@@ -443,7 +505,6 @@ _fork (uint32 ebp, uint32 *esp)
   uint16 child_gdt_index;
   void *phys_addr;
   uint32 *virt_addr;
-  uint32 priority;
   uint32 eflags, eip, this_esp, this_ebp;
 
 #ifdef DEBUG_SYSCALL
@@ -451,7 +512,7 @@ _fork (uint32 ebp, uint32 *esp)
 #endif
   lock_kernel ();
 
-  /* 
+  /*
    * This ugly bit of assembly is designed to obtain the value of EIP
    * in the parent and return from the `call 1f' in the child.
    */
@@ -502,8 +563,7 @@ _fork (uint32 ebp, uint32 *esp)
     duplicate_TSS (ebp, esp, eip, this_ebp, this_esp, eflags, childpgd.dir_pa);
 
   /* Inherit priority from parent */
-  priority = lookup_TSS (child_gdt_index)->priority =
-    lookup_TSS (str ())->priority;
+  lookup_TSS (child_gdt_index)->priority = lookup_TSS (str ())->priority;
 
   wakeup (child_gdt_index);
 
@@ -548,7 +608,7 @@ _exec (char *filename, char *argv[], uint32 *curr_stack)
   /* Temporary storage for frame pointers for a file image up to 4MB
      discounting bss */
   uint32 phys_addr = alloc_phys_frame () | 3;
-  /* frame_map is a 1024 bit bitmap to mark frames not needed for 
+  /* frame_map is a 1024 bit bitmap to mark frames not needed for
      file of specific size when not all sections need loading into RAM */
   uint32 frame_map[32];
   uint32 *frame_ptr = map_virtual_page (phys_addr);
@@ -815,7 +875,7 @@ _switch_to (uint32 pid)
   /*******************
    * jmp_gate (pid); *
    *******************/
-  
+
   /* Stick to this */
   uint32 _waitpid(task_id);
   _waitpid(pid);
@@ -1017,13 +1077,13 @@ _timer (void)
     unlock_kernel ();
 
 #ifdef GDBSTUB_TCP
-    { 
-      extern bool break_requested; 
+    {
+      extern bool break_requested;
       if (break_requested) {
         break_requested = FALSE;
         BREAKPOINT ();
       }
-    }      
+    }
 #endif
 #if 0
     {
@@ -1237,13 +1297,13 @@ init_interrupt_handlers (void)
    ************************************************/
 }
 
-/* 
+/*
  * Local Variables:
  * indent-tabs-mode: nil
  * mode: C
  * c-file-style: "gnu"
  * c-basic-offset: 2
- * End: 
+ * End:
  */
 
 /* vi: set et sw=2 sts=2: */

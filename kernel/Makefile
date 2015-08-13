@@ -7,7 +7,7 @@ CC = gcc
 TAR = tar
 ATSCC = atscc
 ATSOPT = atsopt
-CFLAGS = -m32 -march=i586 -fno-builtin -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -nostdinc -g -Wall -Wno-attributes -O$(OPT) $(CFG) $(EXTRA_CFLAGS)
+CFLAGS = -m32 -march=i586 -fno-builtin -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -nostdinc -g -Wall -Wno-attributes -O$(OPT) $(CFG) $(EXTRA_CFLAGS) -Wfatal-errors
 CPPFLAGS =  $(CFG) -D_QUEST -Wa,--32 -MMD -Iinclude -Iinclude/drivers/acpi -I. -I../libc/include
 ATSFLAGS = -IATS include -I. -Iinclude -Iinclude/drivers/acpi -I../libc/include -g -O$(OPT) -D_ATS_PRELUDE_NONE -D_ATS_DYNLOADFUN_NONE -D_ATS_STALOADFUN_NONE -DATS_TYPES_H -DATS_EXCEPTION_H -DATS_MEMORY_H -D_QUEST
 INDENT = indent
@@ -21,7 +21,7 @@ MNT_POINT=/mnt/quest
 PROGS = quest \
 	sysprogs/shell sysprogs/spinner sysprogs/iotest sysprogs/ipctest \
 	tests/exec tests/race tests/test1 tests/test2 \
-	tests/test3 tests/test4 tests/test5 tests/test6 tests/test7
+	tests/test3 tests/test4 tests/test5 tests/test6 tests/test7 tests/pin-on
 
 ##################################################
 
@@ -42,6 +42,7 @@ OBJS =  boot/boot.o boot/init.o kernel.o module/loader.o \
 	drivers/net/bnx2.o drivers/net/r8169.o \
 	drivers/net/mac80211.o drivers/net/netsetup.o \
 	drivers/serial/mcs9922.o \
+	drivers/gpio/langwell.o \
 	fs/fsys.o \
 	fs/ext2/fsys_ext2fs.o \
 	fs/ram_romfs/fsys_ram_romfs.o \
@@ -58,7 +59,8 @@ OBJS =  boot/boot.o boot/init.o kernel.o module/loader.o \
 	drivers/usb/rtl8187b.o \
 	drivers/usb/usb_tests.o \
 	drivers/usb/usb.o drivers/usb/enumeration.o \
-	kdb/i386-stub.o drivers/serial/mmio32_uart.o
+	kdb/i386-stub.o drivers/serial/mmio32_uart.o \
+	drivers/gpio/intel_scu_flis.o
 
 CFILES = $(patsubst %.o,%.c,$(OBJS))
 DFILES = $(patsubst %.o,%.d,$(OBJS))

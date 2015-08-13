@@ -67,6 +67,12 @@
 #include "smp/semaphore.h"
 #include "smp/sfi.h"
 
+#define writel(val, addr) *((volatile uint32 *)addr) = val
+#define writeb(val, addr) *((volatile uint8 *)addr) = val
+#define readl(addr) (*((volatile uint32 *)addr))
+#define readb(addr) (*((volatile uint8 *)addr))
+
+
 struct sched_param
 {
   int sched_priority;

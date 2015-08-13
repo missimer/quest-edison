@@ -15,7 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _SYSCALL_H_
+#define _SYSCALL_H_
 
+#include "stdint.h"
 
 struct sched_param
 {
@@ -55,6 +58,18 @@ usleep (unsigned usec)
 
   asm volatile ("int $0x30\n"::"a" (1L), "b" (usec):CLOBBERS2);
 
+}
+
+static inline void*
+map_pci_resource(uint32_t vendorid, uint32_t deviceid, uint8_t class_code,
+                 uint8_t subcode, uint32_t res_num)
+{
+  void* ret;
+  uint32_t class_and_sub_code = (class_code << 8) | subcode;
+  asm volatile ("int $0x30\n":"=a" (ret):"a" (3L), "b" (vendorid),
+                "c"(deviceid), "d"(class_and_sub_code), "S"(res_num):
+                "memory","cc","%edi");
+  return ret;
 }
 
 static inline unsigned short
@@ -241,6 +256,8 @@ sched_setparam (int pid, const struct sched_param *p)
 
   return ret;
 }
+
+#endif // _SYSCALL_H_
 
 /* 
  * Local Variables:

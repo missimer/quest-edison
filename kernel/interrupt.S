@@ -319,12 +319,18 @@ interrupt13:
 /* syscall0 is a putchar style call to a video server */ 
 syscall0:
         SREGS_SAVE
-        
+
+        pushl %esi
+        pushl %edx
+        pushl %ecx
         pushl %ebx
         pushl %eax
         call handle_syscall0
-        popl  %eax
-        popl  %ebx              /* preserve */
+        addl $4, %esp   
+        popl  %ebx
+        popl  %ecx
+        popl  %edx
+        popl  %esi     /* preserve */
 
         SREGS_RESTORE
 

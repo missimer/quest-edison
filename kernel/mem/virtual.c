@@ -61,6 +61,55 @@ map_virtual_page (uint32 phys_frame)
   return NULL;                  /* Invalid address */
 }
 
+/* Find free virtual page and map it to a corresponding physical frame
+ *
+ * Returns virtual address
+ *
+ */
+void *
+map_user_virtual_page (uint32 phys_frame)
+{
+
+  uint32 *page_table;
+  int i;
+  void *va;
+
+  uint32* page_dir_virt = map_virtual_page((((uint32)get_pdbr()) & 0xFFFFF000) | 3);
+
+  if(page_dir_virt == NULL) {
+    return NULL;
+  }
+
+  DLOG("page_dir_virt[0] = 0x%X", page_dir_virt[0]);
+
+  page_table = map_virtual_page(page_dir_virt[0]);
+
+  unmap_virtual_page(page_dir_virt);
+
+  if(page_table == NULL) {
+    return NULL;
+  }
+
+  for (i = 0x100; i < 0x400; i++) {
+    if (!page_table[i]) {       /* Free page */
+      page_table[i] = phys_frame;
+
+      va = (char *) (i << 12);
+
+      /* Invalidate page in case it was cached in the TLB */
+      invalidate_page (va);
+
+      unmap_virtual_page(page_table);
+
+      return va;
+    }
+  }
+
+  unmap_virtual_page(page_table);
+  return NULL;                  /* Invalid address */
+}
+
+
 /* Map contiguous physical to virtual memory */
 void *
 map_contiguous_virtual_pages (uint32 phys_frame, uint32 count)

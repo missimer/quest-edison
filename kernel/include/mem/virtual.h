@@ -34,6 +34,7 @@
 #define FRAME_TO_BIGFRAMENUM(x) ((framenum_t) ((x) >> BIGPAGE_SIZE_BITS))
 
 extern void *map_virtual_page (uint32 phys_frame);
+extern void *map_user_virtual_page (uint32 phys_frame);
 extern void unmap_virtual_page (void *virt_addr);
 extern void *map_virtual_pages (uint32 * phys_frames, uint32 count);
 extern void *map_contiguous_virtual_pages (uint32 phys_frame, uint32 count);
