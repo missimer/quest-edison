@@ -1,1 +1,103 @@
-See kernel/README.
+#Quest Kernel
+
+See kernel/README
+
+#Edison Specific Build Setup
+
+You will need to install dfu-util to flash the edison
+
+## U-Boot
+
+Used yocto 1.8 to build but later versions should work in theory
+
+go to: http://www.yoctoproject.org/docs/1.8/adt-manual/adt-manual.html
+
+Find the install toolchain tarball section and click link
+(http://downloads.yoctoproject.org/releases/yocto/yocto-1.8/toolchain/)
+
+First directory is your machine type (most likely) x86_64
+
+Next directory is your TARGET type (x86 32 bit, i586)
+
+In /opt/poky/1.8/ you will find environment-setup-i586-poky-linux
+this will set up your environmental variables but it is broken for
+u-boot because the yocto guys did something really stupid.
+If you look at it you see something like:
+
+  export CC="i586-poky-linux-gcc  -m32 -march=i586 --sysroot=$SDKTARGETSYSROOT"
+
+This does not work for u-boot because u-boot will overwrite CC with
+$(CROSS_COMPILE)gcc and you therefore lose the extra stuff in CC
+but that stuff should really be in CFLAGS anyway (this is where the
+yocto guys are idiots).
+
+To set up the environment script correctly do the following:
+
+Remove CCACHE_PATH, PKG_CONFIG_SYSROOT_DIR, PKG_CONFIG_PATH,
+CONFIG_SITE, and the two ifs at the end of the file.
+
+Add the stuff in CC to CFLAGS, CXX to CXXFLAGS, and CPP to CPPFLAGS.
+
+Finally, source the new environment variables and run the following
+in the uboot directory:
+
+make edison_config
+make
+
+You should have u-boot.bin in your root u-boot directory.  That is
+all you have to do as the scripts in imaging-tools will grab and
+modify u-boot as necessary.
+
+## Quest
+
+In Quest build the kernel and ramdisk image, they will also be
+grabbed automatically.
+
+## dfu-util
+
+To flash Quest, along with dfu-util you will need to install xfstk,
+you can find info on how to do that at:
+
+https://communities.intel.com/message/257193
+
+or follow the instructions here:
+
+Download the source from: https://sourceforge.net/projects/xfstk/files/
+
+You will need the following packages or their equivalent for your distro,
+if you can't get everything to install try building there might be more
+here than you really need:
+
+g++ qtcreator build-essential devscripts libxml2-dev alien doxygen
+graphviz libusb-dev libboost-all-dev libqt4-dev qt4-qmake qt-devel
+
+cmake
+lzma-devel
+
+no g++ -> gcc-c++
+no build-essential -> dnf group install "Development Tools"
+no libxml2-dev -> libxml2-devel
+no libusb-dev -> libusb-devel
+no libboost-all-dev -> boost-devel
+no libqt4-dev -> qt-devel?
+no qt4-qmake
+
+Do:
+
+export DISTRIBUTION_NAME=ubuntu14.04
+export BUILD_VERSION=0.0.0
+
+In the xfstk-build directory go into linux-source-package and do:
+
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+
+## Putting it all together
+
+Now in imaging-tool either run quest-flash.sh which will require
+you to restart the edison manually or change quest-flash.sh and
+specify a command to reboot the edison via the flag --reboot-cmd to
+flashall.sh
